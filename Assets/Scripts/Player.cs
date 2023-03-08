@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
-
     //vida
     private int vida;
     private int vidaMaxima = 3;
@@ -16,8 +15,14 @@ public class Player : MonoBehaviour
     [SerializeField] Image vidaOn2;
     [SerializeField] Image vidaOff2;
 
-    //andar e pular
-    public float Speed;
+    //andar
+    public float Speed = defaultSpeed;
+
+    //correr
+    public float runningSpeed;
+    public const float defaultSpeed = 10;  
+     
+    //pular
     public float JumpForce;
 
     //pulo duplo
@@ -39,6 +44,7 @@ public class Player : MonoBehaviour
     {
         Move();
         Jump();
+        Run();
     }
 
     void Move()
@@ -86,6 +92,17 @@ public class Player : MonoBehaviour
         }
     }
 
+    void Run()
+    {
+        if (Input.GetKey(KeyCode.LeftShift))
+            Speed = runningSpeed;
+        else
+        {
+            if(Speed != defaultSpeed)
+            Speed = defaultSpeed;
+        }
+    }
+
     //Verifica ground para pular
     void OnCollisionEnter2D(Collision2D collision)
     {
@@ -101,7 +118,8 @@ public class Player : MonoBehaviour
     {
         if(collision.gameObject.tag == "Spike")
         {
-            Dano();           
+            Dano();    
+            Debug.Log("Player levou dano");       
         }
     }
 
@@ -145,8 +163,8 @@ public class Player : MonoBehaviour
             if(vida <= 0)
             {
                 Debug.Log("Game Over");
-                
-                GameController.instance.ShowGameOver();
+
+                //GameController.instance.ShowGameOver();
                 Destroy(gameObject);
             }
     }
