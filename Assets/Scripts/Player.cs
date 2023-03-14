@@ -8,35 +8,29 @@ public class Player : MonoBehaviour
     //vida
     private int vida;
     private int vidaMaxima = 3;
-
     [SerializeField] Image vidaOn;
     [SerializeField] Image vidaOff;
-
     [SerializeField] Image vidaOn2;
     [SerializeField] Image vidaOff2;
-
     //andar
     public float Speed = defaultSpeed;
-
     //correr
     public float runningSpeed;
     public const float defaultSpeed = 10;  
-     
     //pular
-    public float JumpForce;
-
+    public float JumpForce = 8;
     //pulo duplo
     public bool isJumping;
     public bool doubleJump;
-
+    //componentes
     private Rigidbody2D rig;
     public Animator anim;
+    private BoxCollider2D boxCollider;
 
     void Start()
     {
         rig = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
-
         vida = vidaMaxima;    
     }
 
@@ -70,7 +64,6 @@ public class Player : MonoBehaviour
             }
     }  
 
-    //pulo e pulo duplo
     void Jump()
     {
         if(Input.GetButtonDown("Jump"))
@@ -113,6 +106,15 @@ public class Player : MonoBehaviour
         }    
     }
 
+    //Anim pulo
+    void OnCollisionExit2D(Collision2D collision)
+    {
+        if(collision.gameObject.tag == "Ground")
+        {
+            isJumping = true;
+        }
+    }
+
     //Dano ao colidir com espinho
     void OnTriggerEnter2D(Collider2D collision)
     {
@@ -120,15 +122,6 @@ public class Player : MonoBehaviour
         {
             Dano();    
             Debug.Log("Player levou dano");       
-        }
-    }
-
-    //Anim pulo
-    void OnCollisionExit2D(Collision2D collision)
-    {
-        if(collision.gameObject.tag == "Ground")
-        {
-            isJumping = true;
         }
     }
 

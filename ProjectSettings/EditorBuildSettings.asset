@@ -10,5 +10,8 @@ EditorBuildSettings:
     guid: 2cda990e2423bbf4892e6590ba056729
   - enabled: 1
     path: Assets/Scenes/Mecanicas2.unity
+    guid: fadfe8f1aeb3adb40b1fbd328d236f33
+  - enabled: 1
+    path: Assets/Scenes/Mecanicas3.unity
     guid: 347c83d198e5db4428a2545862f8bdcb
   m_configObjects: {}
