@@ -5,125 +5,115 @@ using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
-    //vida
     private int vida;
     private int vidaMaxima = 3;
     [SerializeField] Image vidaOn;
     [SerializeField] Image vidaOff;
     [SerializeField] Image vidaOn2;
     [SerializeField] Image vidaOff2;
-    //andar
-    public float Speed = defaultSpeed;
-    //correr
-    public float runningSpeed;
-    public const float defaultSpeed = 10;  
-    //pular
-    public float JumpForce = 8;
-    //pulo duplo
-    public bool isJumping;
-    public bool doubleJump;
-    //componentes
-    private Rigidbody2D rig;
-    public Animator anim;
+
+    [SerializeField] private float speed;
+    [SerializeField] private float jumpPower;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private LayerMask wallLayer;
+
+    private Rigidbody2D body;
+    private Animator anim;
     private BoxCollider2D boxCollider;
+    private float wallJumpCooldown;
+    private float horizontalInput;
 
-    void Start()
+    private void Awake()
     {
-        rig = GetComponent<Rigidbody2D>();
+        //Grab references for rigidbody and animator from object
+        body = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
-        vida = vidaMaxima;    
+        boxCollider = GetComponent<BoxCollider2D>();
+
+        vida = vidaMaxima;
     }
 
-    void Update()
+    private void Update()
     {
-        Move();
-        Jump();
-        Run();
-    }
+        horizontalInput = Input.GetAxis("Horizontal");
 
-    void Move()
-    {
-        Vector3 movement = new Vector3(Input.GetAxis("Horizontal"), 0f, 0f);
-        transform.position += movement * Time.deltaTime * Speed;
+        //Flip player when moving left-right
+        if (horizontalInput > 0.01f)
+            transform.eulerAngles = new Vector3(0f,0f,0f);    
+            //transform.localScale = Vector3.one;
+        else if (horizontalInput < -0.01f)
+            //transform.localScale = new Vector3(-1, 1, 1,);
+            transform.eulerAngles = new Vector3(0f,180f,0f);
 
-            if(Input.GetAxis("Horizontal") > 0f)
-            {
-                anim.SetBool("Walk", true);
-                transform.eulerAngles = new Vector3(0f,0f,0f);
-            }
+        //Set animator parameters
+        anim.SetBool("run", horizontalInput != 0);
+        anim.SetBool("grounded", isGrounded());
 
-            if(Input.GetAxis("Horizontal") < 0f)
-            {
-                anim.SetBool("Walk", true);
-                transform.eulerAngles = new Vector3(0f,180f,0f);
-            }
-
-            if(Input.GetAxis("Horizontal") == 0f)
-            {
-                anim.SetBool("Walk", false);
-            }
-    }  
-
-    void Jump()
-    {
-        if(Input.GetButtonDown("Jump"))
+        //Wall jump logic
+        if (wallJumpCooldown > 0.2f)
         {
-            if(!isJumping)
+            body.velocity = new Vector2(horizontalInput * speed, body.velocity.y);
+
+            if (onWall() && !isGrounded())
             {
-                rig.AddForce(new Vector2(0f, JumpForce), ForceMode2D.Impulse);
-                doubleJump = true;
-                anim.SetBool("Jump", true);
+                body.gravityScale = 0;
+                body.velocity = Vector2.zero;
             }
             else
-            {
-                if(doubleJump)
-                {
-                rig.AddForce(new Vector2(0f, JumpForce), ForceMode2D.Impulse);
-                doubleJump = false;
-                }
-            }
-        }
-    }
+                body.gravityScale = 7;
 
-    void Run()
-    {
-        if (Input.GetKey(KeyCode.LeftShift))
-            Speed = runningSpeed;
+            if (Input.GetKey(KeyCode.Space))
+                Jump();
+        }
         else
+            wallJumpCooldown += Time.deltaTime;
+    }
+
+    private void Jump()
+    {
+        if (isGrounded())
         {
-            if(Speed != defaultSpeed)
-            Speed = defaultSpeed;
+            body.velocity = new Vector2(body.velocity.x, jumpPower);
+            anim.SetTrigger("jump");
+        }
+        else if (onWall() && !isGrounded())
+        {
+            if (horizontalInput == 0)
+            {
+                body.velocity = new Vector2(-Mathf.Sign(transform.localScale.x) * 10, 0);
+                transform.localScale = new Vector3(-Mathf.Sign(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            }
+            else
+                body.velocity = new Vector2(-Mathf.Sign(transform.localScale.x) * 3, 6);
+
+            wallJumpCooldown = 0;
         }
     }
 
-    //Verifica ground para pular
-    void OnCollisionEnter2D(Collision2D collision)
+
+    private bool isGrounded()
     {
-        if(collision.gameObject.tag == "Ground")
-        {
-            isJumping = false;
-            anim.SetBool("Jump", false);
-        }    
+        RaycastHit2D raycastHit = Physics2D.BoxCast(boxCollider.bounds.center, boxCollider.bounds.size, 0, Vector2.down, 0.1f, groundLayer);
+        return raycastHit.collider != null;
+    }
+    private bool onWall()
+    {
+        RaycastHit2D raycastHit = Physics2D.BoxCast(boxCollider.bounds.center, boxCollider.bounds.size, 0, new Vector2(transform.localScale.x, 0), 0.1f, wallLayer);
+        return raycastHit.collider != null;
+    }
+    public bool canAttack()
+    {
+        return horizontalInput == 0 && isGrounded() && !onWall();
     }
 
-    //Anim pulo
-    void OnCollisionExit2D(Collision2D collision)
-    {
-        if(collision.gameObject.tag == "Ground")
-        {
-            isJumping = true;
-        }
-    }
-
-    //Dano ao colidir com espinho
     void OnTriggerEnter2D(Collider2D collision)
     {
         if(collision.gameObject.tag == "Spike")
         {
-            Dano();    
-            Debug.Log("Player levou dano");       
+            Dano();           
         }
     }
+
 
     private void Dano()
     {
@@ -131,7 +121,7 @@ public class Player : MonoBehaviour
 
             if(vida == 2)
             {
-                vidaOn2.enabled = true;   //primeiro coracao apagado
+                vidaOn2.enabled = true;   //primeiro coração apagado
                 vidaOff2.enabled = false; 
             }
             else
@@ -153,12 +143,12 @@ public class Player : MonoBehaviour
                 vidaOn.enabled = false; 
                 vidaOff.enabled = true;    
             }
+
             if(vida <= 0)
             {
                 Debug.Log("Game Over");
-
-                //GameController.instance.ShowGameOver();
                 Destroy(gameObject);
+                GameController.instance.ShowGameOver();
             }
     }
 }
